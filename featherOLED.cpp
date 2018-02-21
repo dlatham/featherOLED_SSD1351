@@ -5,12 +5,12 @@ featherOLED::featherOLED(uint8_t sclk_in, uint8_t mosi_in, uint8_t cs_in, uint8_
 	mosi = mosi_in;
 	cs = cs_in;
 	DCpin = DCpin_in;
-	//x and y set the maximum dimensions of the screem
+	//x and y set the maximum dimensions of the screen
 	max_x = x;
 	max_y = y;
 }
 
-void featherOLED::print(uint8_t StartX, uint8_t StartY, uint8_t Red, uint8_t Green, uint8_t Blue, char* text){
+void featherOLED::print(uint8_t StartX, uint8_t StartY, uint8_t Red, uint8_t Green, uint8_t Blue, char *text){
 	Serial.print("OLED: Print requested for ");
 	Serial.print(text);
 	Serial.print(" with a character count of ");
@@ -33,9 +33,30 @@ void featherOLED::print(uint8_t StartX, uint8_t StartY, uint8_t Red, uint8_t Gre
 			Serial.print(", ");
 			Serial.print(letter[int(text[i])-64][4]);
 			Serial.println(")");
-			Font1x1(StartX + (8 * i), StartY, Red, Green, Blue, letter[int(text[i])-64]);
+			if((int(text[i])>=48) && (int(text[i]))<=57) { // ASCII for all number from 0 - 9 - starts at [0] in the letters array
+				Font1x1(StartX + (8 * i), StartY, Red, Green, Blue, letter[int(text[i])-48]);
+			} else if((int(toupper(text[i]))>=65) && (int(toupper(text[i]))<=90)) { // ASCII for all letters from A - Z
+				Font1x1(StartX + (8 * i), StartY, Red, Green, Blue, letter[int(text[i])-55]);
+			} else if(int(text[i])==32){
+				Font1x1(StartX + (8 * i), StartY, Red, Green, Blue, letter[36]);
+			} else {
+				Font1x1(StartX + (8 * i), StartY, Red, Green, Blue, blank_char);
+			}
 		}
 		
+	}
+}
+
+void featherOLED::paginate(uint8_t y, uint8_t total, uint8_t selected){
+	Serial.print("OLED: Draw pagination requested at row ");
+	Serial.println(y);
+	uint8_t StartX = (max_x - (total * 8)) / 2;
+	for(int i = 0; i <= total; i++){
+		if(i == selected){
+			Font1x1(StartX+i*8, y, 31, 63, 31, page_char[1]);
+		} else {
+			Font1x1(StartX+i*8, y, 31, 63, 31, page_char[0]);
+		}
 	}
 }
 
@@ -103,7 +124,7 @@ void featherOLED::blank(){
   for(int i=0; i<max_x*max_y; i++){
     writeData(0x00);
     writeData(0x00);
-    //writeData(0x00); //262k colorの場合３バイト分送信
+    //writeData(0x00); //262k color
   }
 }
 
@@ -149,7 +170,7 @@ void featherOLED::Font2x2(uint8_t StartX, uint8_t StartY, uint8_t Red, uint8_t G
   writeCommand(0x5C); //Write RAM
    
   for(i=0; i<16; i++){
-    for(ii=0; ii<2; ii++){//倍角の場合２行同じものを描く
+    for(ii=0; ii<2; ii++){
       for(j=7; j>=0; j--){
         if(buf[i] & (1<<(j))){
           writeData(RGBbit1);
